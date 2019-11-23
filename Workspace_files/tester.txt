@@ -1,7 +1,7 @@
 LIBRARY IEEE;
-USE IEEE.std_logic_1164.ALL;
-USE ieee.std_logic_arith.ALL;
-USE ieee.STD_LOGIC_UNSIGNED.ALL;
+	USE IEEE.std_logic_1164.ALL;
+	USE ieee.std_logic_arith.ALL;
+	USE ieee.STD_LOGIC_UNSIGNED.ALL;
 
 ENTITY am29f400b_tester IS
    PORT( 
