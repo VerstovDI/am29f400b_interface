@@ -101,7 +101,7 @@ elsif (rising_edge(clk)) then
         end if;
 	   
 	when reset_s =>
-        if (t_RH_enable = '0') then
+        if (t_RH_enable = '0' and t_RH_counter="000") then
           current_state <= idle;
         end if;
 		
@@ -173,15 +173,17 @@ if (Clk'event and Clk = '1') then
 	IF (current_state = reset_s and t_RH_enable='0') then 
 		t_RH_counter <= "101"; --5 = 50ns
 	elsif(current_state = reset_s and t_RH_enable='1') then 
-		t_RH_counter <= t_RH_counter - '1';
+		if ( t_RH_counter /= "000" )then
+		    t_RH_counter <= t_RH_counter - '1';
+		end if;
 	end if;
 	
 end if;
-if (Clk'event and Clk = '0') then
+if (Clk'event and Clk = '1') then
 	-- t_RH_enable --
 	IF (current_state = reset_s  and t_RH_counter /= "000") then 
 		t_RH_enable <= '1';
-	else
+	elsif (current_state = reset_s  and t_RH_counter = "000") then
 		t_RH_enable <= '0';
 	end if;
 	
