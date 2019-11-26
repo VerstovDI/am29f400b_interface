@@ -101,7 +101,7 @@ elsif (rising_edge(clk)) then
         end if;
 	   
 	when reset_s =>
-        if(t_RH_counter = "000") and (t_RH_enable = '0') then
+        if (t_RH_enable = '0') then
           current_state <= idle;
         end if;
 		
@@ -115,15 +115,10 @@ end process state_flow;
 -------------------------------------------------------------------------------
 main_flow: process (Clk, nRst)
 begin
-if (nRst = '0') then
-    t_RC_counter <= "1111";
-    WE1 <= '0';
-    CE1 <= '0';
-    OE1 <='0';
-elsif (Clk'event and Clk = '1') then
+if (Clk'event and Clk = '1') then
     if (current_state = read_s  ) then
 		if (t_RC_enable='0') then
-			t_RC_enable <= '1';
+		--	t_RC_enable <= '1';
 			t_RC_counter <= "1001"; --9 = 90ns
 			A1 <= S_Addr; --save adress in registr
 		elsif(t_RC_enable='1') then
@@ -137,39 +132,77 @@ elsif (Clk'event and Clk = '1') then
 				NReady1 <= RY ;
 				RESET1  <= '1';
 			elsif (t_RC_counter = "0000") then				
-				CE1 <= '1';
-				OE1 <= '1';
-				t_RC_enable <= '0';
-			else
-				t_RC_counter <= "1001";
+				--CE1 <= '1';
+				--OE1 <= '1';
+				--t_RC_enable <= '0';
 			end if; 
 		end if;
+		
 	elsif (current_state = reset_s ) then
-		t_RC_enable <= '0'; --not enable counting for counter in read_s state		
+		--t_RC_enable <= '0'; --not enable counting for counter in read_s state		
 		if (t_RH_enable='0') then
-			t_RH_enable <= '1';
-			t_RH_counter <= "101"; --5 = 50ns
+			-- t_RH_enable <= '1';
+			-- t_RH_counter <= "101"; --5 = 50ns
 			RESET1  <= '0';
 		elsif(t_RH_enable='1') then
 			if (t_RH_counter /= "000") then
-				t_RH_counter <= t_RH_counter - '1';
+			--	t_RH_counter <= t_RH_counter - '1';
 				CE1 <= '1';
 				OE1 <= '1';
 				NReady1 <= RY ;
 				RESET1  <= '1';
 			elsif (t_RH_counter = "000") then			
-				CE1 <= '0';
+				CE1 <= '1';
 				OE1 <= '0';
-				t_RH_enable <= '0';
-			else
-				t_RH_counter <= "101";
+				--t_RH_enable <= '0';
+				
 			end if; 
 		
 		end if;
+
+	
+	elsif (current_state = idle ) then		
+		CE1 <= '1';	
+		--t_RH_enable <= '0';
+		--t_RC_enable <= '0';
+	end if;
+	
+	
+	
+	-- t_RH_counter --
+	IF (current_state = reset_s and t_RH_enable='0') then 
+		t_RH_counter <= "101"; --5 = 50ns
+	elsif(current_state = reset_s and t_RH_enable='1') then 
+		t_RH_counter <= t_RH_counter - '1';
+	end if;
+	
+end if;
+if (Clk'event and Clk = '0') then
+	-- t_RH_enable --
+	IF (current_state = reset_s  and t_RH_counter /= "000") then 
+		t_RH_enable <= '1';
+	else
+		t_RH_enable <= '0';
+	end if;
+	
+	-- t_RC_enable --
+	IF (current_state = read_s  and t_RC_counter = "1001") then 
+		t_RC_enable <= '1';
+	elsif (current_state = reset_s ) then
+		t_RC_enable <= '0'; --not enable counting for counter in read_s state		
+	--else
+	elsif (current_state = read_s  and t_RC_counter = "0000") then 
+		t_RC_enable <= '0';
 	end if;
 end if;
 end process main_flow;
 END am29f400b_behavioral;
+
+
+
+
+
+
 
 
 

@@ -30,6 +30,13 @@ begin
      wait for 5 ns;
 end process;
 
+adr_process :process
+begin
+     S_Addr <="101010101010101010";
+     wait for 130 ns;
+     S_Addr <="000000101010101010";
+     wait for 100 ns;
+end process;
 
 -- Stimulus process
 stim_proc: process
@@ -41,13 +48,13 @@ begin
 	nCE <='1';
 	nWE <= '0';   
    wait for 10 ns;
-	S_Addr <="101010101010101010";
+	
 	nCE <='0';
 	nWE <= '1';
 	wait for 20 ns;
 	nCE <='0';
 	nWE <= '1';
-	S_Addr <="000000101010101010";
+	
     wait for 160 ns; 	
     nCE <='1';
 	nWE <= '0';
@@ -66,6 +73,7 @@ begin
 end process;
 
 END flow;
+
 
 
 
