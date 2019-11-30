@@ -51,11 +51,17 @@ ARCHITECTURE am29f400b_behavioral of am29f400b_interface IS
   signal t_RC_enable	:    std_logic := '0' ; --not allowed counting
   signal t_RH_counter	:    std_logic_vector(2 downto 0);
   signal t_RH_enable	:    std_logic := '0' ; --not allowed counting  
+  signal t_WC_counter	:    std_logic_vector(3 downto 0);
+  signal t_WC_enable	:    std_logic := '0' ; --not allowed counting  
+  signal t_AH_counter	:    std_logic_vector(2 downto 0);
+  signal t_AH_enable	:    std_logic := '0' ; --not allowed counting  
+  signal write_cycle_number	:    std_logic_vector(1 downto 0):= (others => '0');
+  
 	-----------------------------------------------------------------------------
   TYPE STATE_TYPE IS (
   idle, --waiting state 
   read_s,
-  write_s,
+  write_w,
   reset_s,
   erase
    );
@@ -83,8 +89,8 @@ elsif (rising_edge(clk)) then
     when idle =>
         if (nCE = '0') and (nWE = '1') then   
           current_state <= read_s;
-        elsif (nCE = '0') and (nWE = '0') then
-          current_state <= write_s;
+        elsif (nCE = '0') and (nWE = '0')   then
+          current_state <= write_w;
         end if;
 		
     when read_s =>	
@@ -95,8 +101,8 @@ elsif (rising_edge(clk)) then
 		end if;
 		
 		
-    when write_s =>
-        if (nCE = '1') then
+    when write_w =>
+        if (t_AH_enable ='0' and t_WC_enable ='0' and write_cycle_number ="11" and t_AH_counter="000") then
           current_state <= idle;
         end if;
 	   
@@ -259,11 +265,64 @@ if (Clk'event and Clk = '1') then
 		end if;
 	end if;
 	
+	-- t_WC_counter --
+	if (current_state = write_w and t_WC_enable='0') then 
+		t_WC_counter <= "1001"; --9 = 90ns
+	elsif(current_state = write_w and t_WC_enable ='1') then 
+		if ( t_WC_counter /= "0000" )then
+		    t_WC_counter <= t_WC_counter - '1';
+		end if;
+	end if;
 	
+	-- t_WC_enable --
+	if (current_state = write_w  and t_WC_counter /= "0000" and write_cycle_number ="00" ) then 
+			t_WC_enable <= '1';
+	elsif (current_state = write_w  and t_WC_counter /= "0000" and write_cycle_number ="10" ) then 
+		t_WC_enable <= '1';
+	elsif (current_state = reset_s ) then
+		t_WC_enable <= '0'; --not enable counting for counter in read_s state		
+	elsif (current_state = write_w  and t_WC_counter = "0000") then 
+		t_WC_enable <= '0';
+	end if;
 	
+	-- t_AH_enable --
+	if (current_state = write_w  and t_AH_counter /= "000" and write_cycle_number ="01" ) then 
+		t_AH_enable <= '1';
+	elsif (current_state = write_w  and t_AH_counter /= "000" and write_cycle_number ="11" ) then 
+		t_AH_enable <= '1';
+	elsif (current_state = write_w  and t_AH_counter = "000" and write_cycle_number ="01") then
+		t_AH_enable <= '0';
+	elsif (current_state = write_w  and t_AH_counter = "000" and write_cycle_number ="11") then
+		t_AH_enable <= '0';
+	elsif (current_state = reset_s ) then
+		t_AH_enable <= '0'; 
+	end if;
+	
+	-- t_AH_counter --
+	if (current_state = write_w and t_AH_enable='0') then 
+		t_AH_counter <= "101"; --5 = 50ns
+	elsif(current_state = write_w and t_AH_enable ='1') then 
+		if ( t_AH_counter /= "000" )then
+		    t_AH_counter <= t_AH_counter - '1';
+		end if;
+	end if;
+	
+	--write_cycle_number--
+	if (current_state = write_w and t_WC_enable='0' and t_AH_enable='0' ) then 
+		if(  write_cycle_number = "11" and t_AH_counter ="000") then 
+			write_cycle_number <="00"; --0
+		elsif ( t_AH_counter = "000" and write_cycle_number ="01" and t_AH_enable ='0') then 
+			write_cycle_number <="10"; --2
+		elsif( t_WC_counter = "0000" and write_cycle_number ="00") then 
+			write_cycle_number <="01"; -- 1
+		elsif( t_WC_counter = "0000" and write_cycle_number ="10") then 
+			write_cycle_number <="11"; -- 3
+		end if;
+	end if;
 end if;
 end process main_flow;
 END am29f400b_behavioral;
+
 
 
 

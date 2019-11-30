@@ -64,6 +64,12 @@ begin
     wait for 50 ns; 	
     nCE <='1';
 	nWE <= '0';
+	wait for 10 ns;
+	nCE <= '0';
+	nWE <= '0';
+	--BYTE1 <= '1';
+	
+	
 	
    -- wait for 7000 ns;
    -- reset <= '1';
@@ -73,6 +79,7 @@ begin
 end process;
 
 END flow;
+
 
 
 
