@@ -170,6 +170,16 @@ if (Clk'event and Clk = '1') then
 		if (t_RC_enable='0' and t_RC_counter /= "0000") then
 			A1 <= S_Addr; --save adress in registr
 		end if;
+	elsif(current_state = write_w) then
+		if( write_cycle_number = "00") then
+			A1<="000000010101010101";
+		elsif(write_cycle_number = "01") then
+			A1<="000000001010101010";
+		elsif(write_cycle_number = "10") then
+			A1<="000000010101010101";
+		elsif(write_cycle_number = "11" and t_AH_enable ='0') then
+			A1<=S_Addr;
+		end if;
 	end if;
 	
 	--DQ1=>DQ--
@@ -200,19 +210,15 @@ if (Clk'event and Clk = '1') then
 	
 	--WE1=>WE --
 	if (current_state = read_s  ) then
-		if (t_RC_enable='1') then
-			if (t_RC_counter /= "0000") then
-				WE1 <= '1';
-			end if;
+		if (t_RC_counter /= "0000") then
+			WE1 <= '1';
 		end if;
 	end if;
 	
 	--CE1=>CE --
 	if (current_state = read_s  ) then
-		if (t_RC_enable='1') then
-			if (t_RC_counter /= "0000") then
-				CE1 <= '0';
-			end if;
+		if (t_RC_counter /= "0000" ) then
+			CE1 <= '0';
 		end if;
 	elsif (current_state = reset_s ) then
 		if (t_RH_enable='1') then
@@ -322,6 +328,7 @@ if (Clk'event and Clk = '1') then
 end if;
 end process main_flow;
 END am29f400b_behavioral;
+
 
 
 
