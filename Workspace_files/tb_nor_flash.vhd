@@ -28,6 +28,7 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
 	SIGNAL  RESET		:     std_logic ;
 	SIGNAL  BYTE		:     std_logic ;
 	SIGNAL  RY			:     std_logic ;  --RY/BY#
+	SIGNAL	BYTE_FRONT  :     std_logic ;
 
 
 
@@ -53,7 +54,8 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
      S_DOut		: OUT std_logic_vector(15 downto 0) := (others => 'U');
      nCE        : IN  std_logic := 'U';
      nWE        : IN  std_logic := 'U';
-     NReady     : OUT std_logic := 'U'
+     NReady     : OUT std_logic := 'U';
+	 BYTE_FRONT : IN std_logic  := 'U'
    );
    END COMPONENT;
 
@@ -66,7 +68,8 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
 	S_DOut	  : IN  std_logic_vector(15 downto 0) := (others => 'U');
 	nCE       : OUT std_logic := 'U';
 	nWE       : OUT std_logic := 'U';
-	NReady	  : IN  std_logic := 'U'
+	NReady	  : IN  std_logic := 'U';
+	BYTE_FRONT : OUT std_logic := 'U'
 
    );
    END COMPONENT;
@@ -142,7 +145,8 @@ BEGIN
      S_DOut  =>  S_DOut,
      nCE     =>  nCE,
      nWE     =>  nWE,
-     NReady  =>  NReady
+     NReady  =>  NReady,
+	 BYTE_FRONT =>  BYTE_FRONT
       );
       
 
@@ -157,7 +161,8 @@ BEGIN
 	S_DOut   =>  S_DOut ,  
 	nCE      =>  nCE ,
 	nWE      =>  nWE ,
-	NReady   =>  NReady    		  
+	NReady   =>  NReady,
+	BYTE_FRONT =>BYTE_FRONT
       );
 
 --	 U_2 : am29f400b --model

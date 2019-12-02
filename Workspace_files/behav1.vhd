@@ -26,7 +26,8 @@ ENTITY am29f400b_interface IS
      S_DOut    : OUT    std_logic_vector(15 downto 0) := (others => 'U');
      nCE       : IN     std_logic := 'U';
      nWE       : IN     std_logic := 'U';
-     NReady    : OUT    std_logic := 'U'
+     NReady    : OUT    std_logic := 'U';
+	 BYTE_FRONT : IN     std_logic
     );
 
 END am29f400b_interface;
@@ -36,8 +37,8 @@ END am29f400b_interface;
 -------------------------------------------------------------------------------
 ARCHITECTURE am29f400b_behavioral of am29f400b_interface IS
 	-- FRONTEND
-  SIGNAL  S_DOut1	: std_logic_vector(15 downto 0) := (others => 'U');
-  SIGNAL  NReady1	: std_logic := 'U';
+  SIGNAL  S_DOut1		: std_logic_vector(15 downto 0) := (others => 'U');
+  SIGNAL  NReady1		: std_logic := 'U';
   
   -- BACKEND
   SIGNAL  A1	        :    STD_LOGIC_VECTOR(17 downto 0):= (others => 'U');
@@ -94,7 +95,7 @@ elsif (rising_edge(clk)) then
         end if;
 		
     when read_s =>	
-		if (t_RC_counter = "0000") and (t_RC_enable = '0') then
+		if (t_RC_counter = "0000") and (t_RC_enable = '0') and (nCE = '1') then
 			current_state <= idle;
 		elsif(t_RC_counter /= "0000") and (nCE /= '0') then
 			current_state <= reset_s;
@@ -102,7 +103,7 @@ elsif (rising_edge(clk)) then
 		
 		
     when write_w =>
-        if (t_AH_enable ='0' and t_WC_enable ='0' and write_cycle_number ="11" and t_AH_counter="000") then
+        if (t_AH_enable ='0' and t_WC_enable ='0' and write_cycle_number ="11" and nCE ='1') then
           current_state <= idle;
         end if;
 	   
@@ -123,6 +124,12 @@ main_flow: process (Clk, nRst)
 begin
 if (Clk'event and Clk = '1') then
 	
+	--BYTE1 => BYTE --
+	if(current_state = write_w) then
+		if( write_cycle_number = "00" AND t_WC_enable = '0') then
+			BYTE1<=BYTE_FRONT;
+		end if;
+	end if;
 	--RESET1 => RESET1 --
 	if (current_state = read_s  ) then
 		if(t_RC_enable='1') then
@@ -142,17 +149,26 @@ if (Clk'event and Clk = '1') then
 	
 	--NReady1=>NReady --
 	if (current_state = read_s  ) then
-		if(t_RC_enable='1') then
-			if (t_RC_counter /= "0000") then
-				NReady1 <= RY ;
-			end if;
+		if (t_RC_counter /= "0000") then
+			NReady1 <= '0' ;
+		elsif (t_RC_counter = "0000") then
+			NReady1 <= '1' ;				
 		end if;
 	elsif (current_state = reset_s ) then
 		if(t_RH_enable='1') then
 			if (t_RH_counter /= "000") then
-				NReady1 <= RY ;
+				NReady1 <= '0' ;
+			end if;
+		elsif(t_RH_enable='0') then
+			if (t_RH_counter = "000") then
+				NReady1 <= '1' ;
 			end if;
 		end if;
+	elsif (current_state = idle )  then
+		NReady1 <= '1' ;	
+	elsif (current_state = write_w )  then
+		NReady1 <= RY ;	
+
 	end if;
 	
 	
@@ -171,14 +187,28 @@ if (Clk'event and Clk = '1') then
 			A1 <= S_Addr; --save adress in registr
 		end if;
 	elsif(current_state = write_w) then
-		if( write_cycle_number = "00") then
+	
+		if( write_cycle_number = "00" and BYTE_FRONT='1') then
 			A1<="000000010101010101";
-		elsif(write_cycle_number = "01") then
-			A1<="000000001010101010";
-		elsif(write_cycle_number = "10") then
-			A1<="000000010101010101";
-		elsif(write_cycle_number = "11" and t_AH_enable ='0') then
-			A1<=S_Addr;
+		elsif( write_cycle_number = "00" and BYTE_FRONT='0') then
+			A1<="000000101010101010";
+		elsif (BYTE1='1') then--word 
+			if(write_cycle_number = "01") then
+				A1<="000000001010101010";
+			elsif(write_cycle_number = "10") then
+				A1<="000000010101010101";
+			elsif(write_cycle_number = "11" and t_AH_enable ='0' and t_AH_counter ="101") then
+				A1<=S_Addr;
+			end if;
+		elsif(BYTE1='0') then--byte
+			if(write_cycle_number = "01") then
+				A1<="000000010101010101";
+			elsif(write_cycle_number = "10") then
+				A1<="000000101010101010";
+			elsif(write_cycle_number = "11" and t_AH_enable ='0' and t_AH_counter ="101") then
+				A1<=S_Addr;
+			end if;
+		
 		end if;
 	end if;
 	
@@ -188,6 +218,16 @@ if (Clk'event and Clk = '1') then
 			if (t_RC_counter /= "0000") then
 				DQ1 <= (others=>'Z');
 			end if;
+		end if; --
+	elsif(current_state = write_w) then
+		if( write_cycle_number = "00") then
+			DQ1 <="0000000010101010";
+		elsif(write_cycle_number = "01") then
+			DQ1 <="0000000001010101";
+		elsif(write_cycle_number = "10") then
+			DQ1 <="0000000010100000";
+		elsif(write_cycle_number = "11" and t_AH_enable ='0') then
+			DQ1 <= S_DIn ;
 		end if;
 	end if;
 	
@@ -206,11 +246,21 @@ if (Clk'event and Clk = '1') then
 				OE1 <= '0';
 			end if;
 		end if;
+	elsif (current_state = write_w ) then
+		OE1 <= '1';
 	end if;
 	
 	--WE1=>WE --
 	if (current_state = read_s  ) then
 		if (t_RC_counter /= "0000") then
+			WE1 <= '1';
+		end if;
+	elsif (current_state = write_w ) then
+		if(t_AH_enable/='0') then		
+			WE1 <= '0';		
+		elsif(t_WC_enable/='0') then
+			WE1 <= '0';
+		elsif( t_AH_enable='0' and t_WC_enable='0') then	
 			WE1 <= '1';
 		end if;
 	end if;
@@ -230,6 +280,23 @@ if (Clk'event and Clk = '1') then
 		end if;
 	elsif (current_state = idle ) then		
 		CE1 <= '1';	
+	elsif (current_state = write_w ) then
+		if(t_WC_enable ='0' and t_AH_enable='0')then
+			if( write_cycle_number ="00" ) then
+				CE1 <= '1';
+			elsif( write_cycle_number ="10" ) then
+				CE1 <= '1';
+			elsif( write_cycle_number ="01" ) then
+				CE1 <= '1';
+			elsif( write_cycle_number ="11" ) then
+				CE1 <= '1';
+			end if;
+		elsif (t_WC_enable /='0') then
+			CE1 <= '0';
+		elsif (t_AH_enable/='0') then
+			CE1 <= '0';
+		end if;
+		
 	end if;
 	
 	-- t_RC_counter --
@@ -328,6 +395,8 @@ if (Clk'event and Clk = '1') then
 end if;
 end process main_flow;
 END am29f400b_behavioral;
+
+
 
 
 
