@@ -15,11 +15,11 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
     SIGNAL  front_S_Addr		:     std_logic_vector(17 downto 0) := (others => 'U');
     SIGNAL  front_S_DIn		    :     std_logic_vector(15 downto 0) := (others => 'U');
     SIGNAL  front_S_DOut		:     std_logic_vector(15 downto 0) := (others => 'U');
-    SIGNAL  front_nCE			:     std_logic := 'U';
-    SIGNAL  front_nWE			:     std_logic := 'U';
+   -- SIGNAL  front_nCE			:     std_logic := 'U';
+    --SIGNAL  front_nWE			:     std_logic := 'U';
     SIGNAL  front_nReady		:     std_logic := 'U';
 	SIGNAL  front_Byte			: 	  std_logic := 'U';
-	
+	SIGNAL  HostChoice		 	:     std_logic_vector(2 downto 0) := (others => '0');
 	-- BACKEND
     SIGNAL  back_A 		:     std_logic_vector(17 downto 0);  --
     SIGNAL  back_DQ		:     std_logic_vector(15 downto 0) ;  -- DQ15/back_A-1
@@ -49,10 +49,11 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
      front_S_Addr	: IN  	 std_logic_vector(17 downto 0) := (others => 'U');
      front_S_DIn    : IN  	 std_logic_vector(15 downto 0) := (others => 'U');
      front_S_DOut	: OUT 	 std_logic_vector(15 downto 0) := (others => 'U');
-     front_nCE      : IN  	 std_logic := 'U';
-     front_nWE      : IN  	 std_logic := 'U';
+     --front_nCE      : IN  	 std_logic := 'U';
+     --front_nWE      : IN  	 std_logic := 'U';
      front_nReady   : OUT 	 std_logic := 'U';
-	 front_Byte     : IN  	 std_logic  := 'U'
+	 front_Byte     : IN  	 std_logic  := 'U';
+	 HostChoice		: IN    std_logic_vector(2 downto 0) := (others => '0')
    );
    END COMPONENT;
 
@@ -63,10 +64,11 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
 	front_S_Addr	: OUT std_logic_vector(17 downto 0) := (others => 'U');
 	front_S_DIn     : OUT std_logic_vector(15 downto 0) := (others => 'U');
 	front_S_DOut	: IN  std_logic_vector(15 downto 0) := (others => 'U');
-	front_nCE       : OUT std_logic := 'U';
-	front_nWE       : OUT std_logic := 'U';
+	--front_nCE       : OUT std_logic := 'U';
+	--front_nWE       : OUT std_logic := 'U';
 	front_nReady	: IN  std_logic := 'U';
-	front_Byte 		: OUT std_logic := 'U'
+	front_Byte 		: OUT std_logic := 'U';
+	HostChoice		: OUT     std_logic_vector(2 downto 0) := (others => '0')
    );
    END COMPONENT;
    
@@ -140,10 +142,11 @@ BEGIN
      front_S_Addr  =>  front_S_Addr,
      front_S_DIn   =>  front_S_DIn,
      front_S_DOut  =>  front_S_DOut,
-     front_nCE     =>  front_nCE,
-     front_nWE     =>  front_nWE,
+    -- front_nCE     =>  front_nCE,
+    -- front_nWE     =>  front_nWE,
      front_nReady  =>  front_nReady,
-	 front_Byte    =>  front_Byte
+	 front_Byte    =>  front_Byte,
+	 HostChoice	   => HostChoice
       );
 
    U_0 : am29f400b_tester
@@ -153,10 +156,11 @@ BEGIN
 	front_S_Addr   =>  front_S_Addr,
 	front_S_DIn    =>  front_S_DIn ,
 	front_S_DOut   =>  front_S_DOut ,  
-	front_nCE      =>  front_nCE ,
-	front_nWE      =>  front_nWE ,
+	--front_nCE      =>  front_nCE ,
+	--front_nWE      =>  front_nWE ,
 	front_nReady   =>  front_nReady,
-	front_Byte     =>  front_Byte
+	front_Byte     =>  front_Byte,
+	HostChoice	   => HostChoice
       );
 
 --	 U_2 : am29f400b --model
@@ -207,4 +211,3 @@ BEGIN
 --      );
 	  
 END struct;
-
