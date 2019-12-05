@@ -255,7 +255,19 @@ begin
 		elsif (current_state = idle) then
 			front_nReady1 <= '1' ;	
 		elsif (current_state = write_s) then
-			front_nReady1 <= back_RY ;
+			if(t_AH_counter="000" and write_cycle_number ="11") then 
+				front_nReady1 <= '1' ;
+			else 
+				front_nReady1 <= '0' ;
+			end if;
+		elsif (current_state = erase) then
+			if(t_AH_counter="000" and erase_cycle_number ="101" and t_AH_enable ='1') then 
+				front_nReady1 <= '1' ;
+			else 
+				front_nReady1 <= '0' ;
+			end if;
+		elsif (current_state = erase_wait) then
+			front_nReady1 <= '0' ;
 		elsif (current_state = manufacter_id) then
 			if (t_RC_counter /= "0000") then
 				front_nReady1 <= '0' ;
@@ -389,7 +401,7 @@ begin
 			elsif(write_cycle_number = "10") then
 				back_DQ1 <= "0000000010010000";
 			elsif(write_cycle_number = "11" and t_AH_enable = '0') then
-				back_DQ1 <= "0000000000000001";
+				back_DQ1 <= (others => 'U');
 			end if;
 		elsif(current_state = erase) then
 			if( erase_cycle_number = "000") then
