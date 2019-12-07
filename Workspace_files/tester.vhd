@@ -59,8 +59,8 @@ begin
     wait for 180 ns; 	
 	--front_nCE <= '1';
 	--front_nWE <= '0';
-	HostChoice <= "000";
-	wait for 10 ns;
+	--HostChoice <= "000";
+	--wait for 10 ns;
 	HostChoice <= "001";
 	--front_nCE <= '0';
 	--front_nWE <= '1';
@@ -99,3 +99,4 @@ begin
 end process;
 
 END flow;
+

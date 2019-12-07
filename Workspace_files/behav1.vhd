@@ -131,8 +131,8 @@ begin  -- process state_flow
 					current_state <= idle;
 				elsif (t_RC_counter = "0000") and (t_RC_enable = '0') and (HostChoice = "100" ) then 
 					current_state <= write_s;
-				elsif(t_RC_counter /= "0000") and (HostChoice /= "001") then ---(front_nCE /= '0')
-					current_state <= reset_s;
+				--elsif(t_RC_counter /= "0000") and (HostChoice /= "001") then ---(front_nCE /= '0')
+					--current_state <= reset_s;
 				elsif   (t_RC_counter = "0000") and (t_RC_enable = '0') and (HostChoice = "010" ) then 
 					current_state <= manufacter_id;
 				elsif   (t_RC_counter = "0000") and (t_RC_enable = '0') and  (HostChoice = "011")   then
@@ -764,3 +764,4 @@ begin
 end process main_flow;
 
 END am29f400b_behavioral;
+
