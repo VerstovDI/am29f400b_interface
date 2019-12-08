@@ -427,6 +427,8 @@ begin
 				end if;
 			end if;
 		elsif (current_state = reset_s) then
+			back_OE1 <= '0';
+		elsif (current_state = reset_s) then
 			if(t_RH_enable = '1') then
 				if (t_RH_counter /= "000") then
 					back_OE1 <= '1';
@@ -451,6 +453,9 @@ begin
 			if (t_RC_counter /= "0000") then
 				back_WE1 <= '1';
 			end if;
+		elsif (current_state = reset_s) then
+			back_WE1 <= '1';
+				
 		elsif (current_state = write_s) then
 			if(t_AH_enable /= '0') then		
 				back_WE1 <= '0';		
@@ -483,13 +488,7 @@ begin
 				back_CE1 <= '0';
 			end if;
 		elsif (current_state = reset_s) then
-			if (t_RH_enable = '1') then
-				if (t_RH_counter /= "000") then
-					back_CE1 <= '1';
-				elsif (t_RH_counter = "000") then			
-					back_CE1 <= '1';
-				end if;
-			end if;
+			back_CE1 <= '1';
 		elsif (current_state = idle) then		
 			back_CE1 <= '1';	
 		elsif (current_state = write_s) then
@@ -764,4 +763,5 @@ begin
 end process main_flow;
 
 END am29f400b_behavioral;
+
 

@@ -73,10 +73,10 @@ begin
 	--front_nWE <= '0';
 	HostChoice <= "100";
 	front_S_DIn <= "1101101000010010";
-	wait for 420 ns;
+	wait for 820 ns;
 	front_Byte <= '0';
 	front_S_DIn <= "0000000010010000";
-	wait for 460 ns;
+	wait for 845 ns;
 	HostChoice <= "001";--read
     -- wait for 7000 ns;
     -- reset <= '1';
@@ -90,13 +90,15 @@ begin
 	wait for 420 ns;
 	front_Byte <= '1';
 	hostChoice <= "011";
-	wait for 695 ns;
+	wait for 740 ns;
 	front_Byte <= '0';
-	wait for 400 ns;
+	
+	wait for 815 ns;
 	front_Byte <= '1';
 	hostChoice <= "000";
     wait;
 end process;
 
 END flow;
+
 
