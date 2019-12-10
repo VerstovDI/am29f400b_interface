@@ -25,8 +25,6 @@ ENTITY am29f400b_interface IS
 		clk        	  	 : IN     std_logic;
 		front_Byte 	     : IN     std_logic;
 		nRst       	     : IN     std_logic := 'U';
-		--front_nCE        : IN     std_logic := 'U';
-		--front_nWE        : IN     std_logic := 'U';
 		front_nReady     : OUT    std_logic := 'U';
 		front_S_Addr     : IN     std_logic_vector(17 downto 0) := (others => 'U');
 		front_S_DIn      : IN     std_logic_vector(15 downto 0) := (others => 'U');
@@ -763,5 +761,6 @@ begin
 end process main_flow;
 
 END am29f400b_behavioral;
+
 
 
