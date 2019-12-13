@@ -81,7 +81,7 @@ begin
 	wait for 430 ns;
 	wait for 420 ns;
 	hostChoice <= "011";
-	wait for 1340 ns;
+	wait for 1350 ns;
 	hostChoice <= "000";
 	wait;
 end process;
@@ -105,6 +105,7 @@ begin
 end process;
 
 END flow;
+
 
 
 

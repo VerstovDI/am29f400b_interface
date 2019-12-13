@@ -28,6 +28,7 @@ ENTITY am29f400b_interface IS
 		front_nReady     : OUT    std_logic := 'U';
 		front_S_Addr     : IN     std_logic_vector(17 downto 0) := (others => 'U');
 		front_S_DIn      : IN     std_logic_vector(15 downto 0) := (others => 'U');
+		front_recieve  	 : OUT	  std_logic := '0';
 		front_S_DOut     : OUT    std_logic_vector(15 downto 0) := (others => 'U')
     );
 
@@ -58,7 +59,7 @@ ARCHITECTURE am29f400b_behavioral of am29f400b_interface IS
 	-- FRONTEND
 	SIGNAL  front_S_DOut1			:    std_logic_vector(15 downto 0) := (others => 'U');
 	SIGNAL  front_nReady1			:    std_logic := 'U';
-	
+	SIGNAL  front_recieve1  	    : 	  std_logic := '0'; -- 1 when HostChoice change and interface recieve this signal
 	-- BACKEND
 	SIGNAL back_A1	        		:    std_logic_vector(17 downto 0) := (others => 'U');
 	SIGNAL back_DQ1	        		:    std_logic_vector(15 downto 0) := (others => 'U');
@@ -79,7 +80,7 @@ ARCHITECTURE am29f400b_behavioral of am29f400b_interface IS
 	SIGNAL t_ERASE_CHECK_enable	 	:    std_logic := '0';  -- counting is not allowed
 	SIGNAL write_cycle_number		:    std_logic_vector(1 downto 0) := (others => '0');
 	SIGNAL erase_cycle_number		:    std_logic_vector(2 downto 0) := (others => '0');
-  
+    SIGNAL HostChoice1		        :     std_logic_vector(2 downto 0) := (others => '0'); -- регистр
 -----------------------------------------------------------------------------
 TYPE STATE_TYPE IS (
 	idle,     		-- waiting state 
@@ -104,6 +105,7 @@ BEGIN
 	back_BYTE     <= back_BYTE1;
 	front_S_DOut  <= front_S_DOut1;
 	front_nReady  <= front_nReady1;
+	front_recieve <= front_recieve1;
 
 -----------------------------------------------------------------------------
 
@@ -200,6 +202,19 @@ end process state_flow;
 main_flow: process (Clk, nRst)
 begin
 	if (Clk'event and Clk = '1') then
+-- 		Если host ничего не делает (idle), то host обязан либо послать на frontend HostChoice = "000", либо ничего не посылать (по умолчанию тоже "000") 
+--		Если host хочет обычную операцию чтения (Read), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "001"
+-- 		Если host хочет операцию чтения Manufacturer ID (read + Manufacturer_ID), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "010"
+--	    Если host хочет операцию записи (write), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "100"		
+		
+		--front_recieve1 and HostChoice1--
+		if (HostChoice1 /= HostChoice) then 
+			front_recieve1<='1';
+			HostChoice1 <= HostChoice;
+		elsif (front_recieve1 ='1'  and HostChoice1 = HostChoice) then
+			front_recieve1<='0';
+		end if;
+			
 		
 		--back_BYTE1 => back_BYTE --
 		if(current_state = write_s) then
@@ -388,7 +403,7 @@ begin
 				back_DQ1 <= "0000000001010101";
 			elsif(write_cycle_number = "10") then
 				back_DQ1 <= "0000000010100000";
-			elsif(write_cycle_number = "11" and t_AH_enable = '0') then
+			elsif(write_cycle_number = "11" and t_AH_enable = '0' and t_AH_counter ="101") then
 				back_DQ1 <= front_S_DIn ;
 			end if;
 		elsif(current_state = manufacter_id) then
@@ -761,6 +776,7 @@ begin
 end process main_flow;
 
 END am29f400b_behavioral;
+
 
 
 
