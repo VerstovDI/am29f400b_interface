@@ -19,15 +19,17 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
 	SIGNAL  front_Byte			: 	  std_logic := 'U';
 	SIGNAL  HostChoice		 	:     std_logic_vector(2 downto 0) := (others => '0');
 	SIGNAL	front_recieve  		: 	  std_logic := '0';
+	SIGNAL  front_CS 		    : 	  std_logic := '0';
+	SIGNAL  front_give_data     : 	  std_logic := '0';
 	-- BACKEND
-    SIGNAL  back_A 		:     std_logic_vector(17 downto 0);  --
-    SIGNAL  back_DQ		:     std_logic_vector(15 downto 0) ;  -- DQ15/back_A-1
-    SIGNAL  back_CE		:     std_logic ;
-    SIGNAL  back_OE		:     std_logic ;
-    SIGNAL  back_WE		:     std_logic ;
-    SIGNAL  back_RESET	:     std_logic ;
-    SIGNAL  back_BYTE	:     std_logic ;
-    SIGNAL  back_RY		:     std_logic ;  --RY/BY#
+    SIGNAL  back_A 				:     std_logic_vector(17 downto 0);  --
+    SIGNAL  back_DQ				:     std_logic_vector(15 downto 0) ;  -- DQ15/back_A-1
+    SIGNAL  back_CE				:     std_logic ;
+    SIGNAL  back_OE				:     std_logic ;
+    SIGNAL  back_WE				:     std_logic ;
+    SIGNAL  back_RESET			:     std_logic ;
+    SIGNAL  back_BYTE			:     std_logic ;
+    SIGNAL  back_RY				:     std_logic ;  --RY/BY#
 
    -- Component Declarations
 
@@ -41,7 +43,7 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
      back_RESET   	: OUT    std_logic := 'U';
      back_BYTE    	: OUT    std_logic := 'U';
 	 back_RY		: IN     std_logic := 'U';  --RY/BY#
-     front_recieve  : OUT    std_logic := '0';
+     
 	-- FRONTEND
      clk		    : IN  	 std_logic;
      nRst			: IN  	 std_logic := 'U';
@@ -50,8 +52,10 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
      front_S_DOut	: OUT 	 std_logic_vector(15 downto 0) := (others => 'U');
      front_nReady   : OUT 	 std_logic := 'U';
 	 front_Byte     : IN  	 std_logic  := 'U';
-	 
-	 HostChoice		: IN    std_logic_vector(2 downto 0) := (others => '0')
+	 HostChoice		: IN    std_logic_vector(2 downto 0) := (others => '0');
+	 front_recieve  : OUT    std_logic := '0';
+	 front_give_data : OUT   std_logic ;
+	 front_CS 		: IN	  std_logic := '0'
    );
    END COMPONENT;
 
@@ -64,7 +68,8 @@ ARCHITECTURE struct OF tb_am29f400b_interface IS
 	front_S_DOut	: IN  std_logic_vector(15 downto 0) := (others => 'U');
 	front_nReady	: IN  std_logic := 'U';
 	front_Byte 		: OUT std_logic := 'U';
-	HostChoice		: OUT     std_logic_vector(2 downto 0) := (others => '0')
+	HostChoice		: OUT     std_logic_vector(2 downto 0) := (others => '0');
+	front_CS 		: OUT	  std_logic 
    );
    END COMPONENT;
    
@@ -144,7 +149,10 @@ BEGIN
     -- front_nWE     =>  front_nWE,
      front_nReady  =>  front_nReady,
 	 front_Byte    =>  front_Byte,
-	 HostChoice	   => HostChoice
+	 HostChoice	   => HostChoice,
+	 front_CS 	   =>  front_CS,
+	 front_give_data  =>  front_give_data
+	 
       );
 
    U_0 : am29f400b_tester
@@ -156,7 +164,8 @@ BEGIN
 	front_S_DOut   =>  front_S_DOut ,  
 	front_nReady   =>  front_nReady,
 	front_Byte     =>  front_Byte,
-	HostChoice	   => HostChoice
+	HostChoice	   =>  HostChoice,
+	front_CS 	   =>  front_CS
       );
 
 --	 U_2 : am29f400b --model
@@ -207,4 +216,5 @@ BEGIN
 --      );
 	  
 END struct;
+
 

@@ -13,7 +13,8 @@ ENTITY am29f400b_tester IS
 	front_S_DOut	    : IN  std_logic_vector(15 downto 0) := (others => 'U');
     front_NReady	    : IN  std_logic := 'U';
 	front_Byte  		: OUT std_logic := 'U';  --1 WORD
-	HostChoice		 	: OUT std_logic_vector(2 downto 0) := (others => '0')
+	HostChoice		 	: OUT std_logic_vector(2 downto 0) := (others => '0');
+	front_CS 			: OUT std_logic := '0'
    );
 
 END am29f400b_tester ;
@@ -81,7 +82,9 @@ begin
 	wait for 430 ns;
 	wait for 420 ns;
 	hostChoice <= "011";
-	wait for 1350 ns;
+	wait for 1400 ns;
+	hostChoice <= "001";
+	wait for 20 ns;
 	hostChoice <= "000";
 	wait;
 end process;
@@ -104,7 +107,20 @@ begin
     wait;
 end process;
 
+CS_proc: process
+begin        
+
+    front_CS <= '0';
+    wait for 3500 ns;
+    front_CS <= '1';
+    wait for 20 ns;
+	front_CS <= '0';
+    wait;
+end process;
+
 END flow;
+
+
 
 
 

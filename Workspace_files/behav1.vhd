@@ -29,7 +29,9 @@ ENTITY am29f400b_interface IS
 		front_S_Addr     : IN     std_logic_vector(17 downto 0) := (others => 'U');
 		front_S_DIn      : IN     std_logic_vector(15 downto 0) := (others => 'U');
 		front_recieve  	 : OUT	  std_logic := '0';
-		front_S_DOut     : OUT    std_logic_vector(15 downto 0) := (others => 'U')
+		front_S_DOut     : OUT    std_logic_vector(15 downto 0) := (others => 'U');
+		front_CS 		 : IN	  std_logic ;--allowed read HostChoice if 0
+		front_give_data  : OUT	  std_logic := '0'  -- if 1, host need give addr or/and data
     );
 
 END am29f400b_interface;
@@ -81,6 +83,7 @@ ARCHITECTURE am29f400b_behavioral of am29f400b_interface IS
 	SIGNAL write_cycle_number		:    std_logic_vector(1 downto 0) := (others => '0');
 	SIGNAL erase_cycle_number		:    std_logic_vector(2 downto 0) := (others => '0');
     SIGNAL HostChoice1		        :     std_logic_vector(2 downto 0) := (others => '0'); -- регистр
+	SIGNAL front_give_data1   		:    std_logic := '0'; 
 -----------------------------------------------------------------------------
 TYPE STATE_TYPE IS (
 	idle,     		-- waiting state 
@@ -106,14 +109,14 @@ BEGIN
 	front_S_DOut  <= front_S_DOut1;
 	front_nReady  <= front_nReady1;
 	front_recieve <= front_recieve1;
-
+	front_give_data  <= front_give_data1;
 -----------------------------------------------------------------------------
 
 state_flow: process (Clk, nRst)
 begin  -- process state_flow
 	if (nRst = '0') then                   
 		current_state <= reset_s;
-	elsif (rising_edge(clk)) then    
+	elsif (rising_edge(clk) and front_CS ='0') then    
 		case current_state is  
 			when idle =>
 				if HostChoice = "001" then    --(front_nCE = '0') and (front_nWE = '1') 
@@ -207,6 +210,13 @@ begin
 -- 		Если host хочет операцию чтения Manufacturer ID (read + Manufacturer_ID), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "010"
 --	    Если host хочет операцию записи (write), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "100"		
 		
+		--front_give_data1--
+		if (current_state = write_s) and (t_WC_counter="0000")  and (write_cycle_number="10") then
+			front_give_data1<='1';
+		else
+			front_give_data1<='0';
+		end if;
+		
 		--front_recieve1 and HostChoice1--
 		if (HostChoice1 /= HostChoice) then 
 			front_recieve1<='1';
@@ -227,6 +237,10 @@ begin
 			end if;
 		elsif (current_state = erase) then
 			if( erase_cycle_number = "000" AND t_WC_enable = '0') then
+				back_BYTE1 <= front_Byte;
+			end if;
+		elsif (current_state = read_s ) then
+			if(  t_RC_counter= "1001") then
 				back_BYTE1 <= front_Byte;
 			end if;
 		end if;
@@ -250,10 +264,12 @@ begin
 
 		--front_nReady1=>front_nReady --
 		if (current_state = read_s) then
-			if (t_RC_counter /= "0000") then
+			if (t_RC_counter = "1001") then
 				front_nReady1 <= '0' ;
-			elsif (t_RC_counter = "0000") then
-				front_nReady1 <= '1' ;				
+			elsif (t_RC_counter = "0100") then
+				front_nReady1 <= '1' ;	
+			elsif (t_RC_counter = "0000") and (t_RC_enable='0') then
+				front_nReady1 <= '0' ;	
 			end if;
 		elsif (current_state = reset_s) then
 			if(t_RH_enable = '1') then
@@ -282,10 +298,15 @@ begin
 		elsif (current_state = erase_wait) then
 			front_nReady1 <= '0' ;
 		elsif (current_state = manufacter_id) then
-			if (t_RC_counter /= "0000") then
-				front_nReady1 <= '0' ;
-			elsif (t_RC_counter = "0000") then
-				front_nReady1 <= '1' ;				
+			if( write_cycle_number ="11" ) then 	
+				if (t_RC_counter = "1001") then
+					front_nReady1 <= '0' ;
+				elsif (t_RC_counter = "0100") then
+					front_nReady1 <= '1' ;		
+				elsif (t_RC_counter = "0000") then
+					front_nReady1 <= '0' ;	
+				END IF;
+
 			end if;
 		end if;
 		
@@ -776,6 +797,8 @@ begin
 end process main_flow;
 
 END am29f400b_behavioral;
+
+
 
 
 
