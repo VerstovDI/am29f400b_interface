@@ -213,6 +213,8 @@ begin
 		--front_give_data1--
 		if (current_state = write_s) and (t_WC_counter="0000")  and (write_cycle_number="10") then
 			front_give_data1<='1';
+		elsif( current_state = read_s and t_RC_counter="1001")	then
+			front_give_data1<='1';
 		else
 			front_give_data1<='0';
 		end if;
@@ -392,8 +394,10 @@ begin
 					back_A1 <= "000000010101010101";
 				elsif(erase_cycle_number = "100") then
 					back_A1 <= "000000001010101010";
-				elsif(erase_cycle_number = "101" ) then
+				elsif(erase_cycle_number = "101" and t_AH_enable = '0' and t_AH_counter ="101") then
 					back_A1 <= "000000010101010101";
+				elsif(erase_cycle_number = "101"  and t_AH_counter ="000") then
+					back_A1 <= (others => 'U');	
 				end if;
 			elsif(back_BYTE1 = '0') then  --byte
 				if(erase_cycle_number = "001") then
@@ -404,10 +408,14 @@ begin
 					back_A1 <= "000000101010101010";
 				elsif(erase_cycle_number = "100") then
 					back_A1 <= "000000010101010101";					
-				elsif(erase_cycle_number = "101") then
+				elsif(erase_cycle_number = "101" and t_AH_enable = '0' and t_AH_counter ="101") then
 					back_A1 <= "000000101010101010";
+				elsif(erase_cycle_number = "101"  and t_AH_counter ="000") then
+					back_A1 <= (others => 'U');	
 				end if;
+			
 			end if;
+			
 		end if;
 		
 		--back_DQ1=>back_DQ--
@@ -426,6 +434,8 @@ begin
 				back_DQ1 <= "0000000010100000";
 			elsif(write_cycle_number = "11" and t_AH_enable = '0' and t_AH_counter ="101") then
 				back_DQ1 <= front_S_DIn ;
+			elsif(write_cycle_number = "11" and t_AH_enable = '0' and t_AH_counter ="000") then
+				back_DQ1 <= (others => 'Z');	
 			end if;
 		elsif(current_state = manufacter_id) then
 			if( write_cycle_number = "00") then
@@ -435,7 +445,7 @@ begin
 			elsif(write_cycle_number = "10") then
 				back_DQ1 <= "0000000010010000";
 			elsif(write_cycle_number = "11" and t_AH_enable = '0') then
-				back_DQ1 <= (others => 'U');
+				back_DQ1 <= (others => 'Z');
 			end if;
 		elsif(current_state = erase) then
 			if( erase_cycle_number = "000") then
@@ -448,8 +458,10 @@ begin
 				back_DQ1 <= "0000000010101010";
 			elsif(erase_cycle_number = "100") then
 				back_DQ1 <= "0000000001010101";
-			elsif(erase_cycle_number = "101" and t_AH_enable = '0') then
+			elsif(erase_cycle_number = "101" and t_AH_enable = '0' and t_AH_counter ="101") then
 				back_DQ1 <= "0000000000010000" ;
+			elsif(erase_cycle_number = "101"  and t_AH_counter ="000") then
+				back_DQ1 <= (others => 'Z');	
 			end if;
 		end if;
 
@@ -777,7 +789,7 @@ begin
 		end if;
 		
 		-- erase_cycle_number	--
-		if (current_state = erase and t_WC_enable = '0' and t_AH_enable = '0') then 
+		if (current_state = erase and t_WC_enable = '0' ) then 
 			if (erase_cycle_number = "101" and t_AH_counter = "000") then 
 				erase_cycle_number <= "000";  --0
 			elsif( t_WC_counter = "0000" and erase_cycle_number = "000") then 
@@ -791,12 +803,16 @@ begin
 			elsif( t_WC_counter = "0000" and erase_cycle_number = "100") then 
 				erase_cycle_number <= "101";  -- 5
 			end if;
+		elsif(current_state = erase_wait and t_ERASE_CHECK_enable='1') then 
+			erase_cycle_number <= "000";  --0
+			
 		end if;
 	end if;
 
 end process main_flow;
 
 END am29f400b_behavioral;
+
 
 
 
