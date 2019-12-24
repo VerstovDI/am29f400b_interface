@@ -37,15 +37,15 @@ wait for 85 ns;
     front_S_Addr <= "101010001010101010";
     wait for 110 ns;
     front_S_Addr <= (others => 'U');
-    wait for 340 ns;
+    wait for 400 ns;
     front_S_Addr <= "101111001010101010";
     wait for 20 ns;
     front_S_Addr <= (others => 'U');
-    wait for 1410 ns;
+    wait for 1340 ns;
     front_S_Addr <= "100000001010100000";
     wait for 20 ns;
     front_S_Addr <= (others => 'U');
-    wait for 420 ns;
+    wait for 490 ns;
     front_S_Addr <= "100000001111111000";
     wait for 20 ns;
 	front_S_Addr <= (others => 'U');
@@ -70,7 +70,7 @@ begin
 	wait for 10 ns;
 	HostChoice <= "100";--write
 	wait for 390 ns;
-	HostChoice <= "001";--read
+	HostChoice <= "000";--read
 	wait for 120 ns;
 	hostChoice <= "010";
 	wait for 430 ns;
@@ -85,7 +85,7 @@ begin
 	wait for 10 ns;
 	HostChoice <= "100";
 	wait for 390 ns;
-	HostChoice <= "001";--read
+	HostChoice <= "000";--read
 	wait for 120 ns;
 	hostChoice <= "010";
 	wait for 430 ns;
@@ -111,7 +111,7 @@ D_in_proc: process
 begin        
 	-- hold reset state for 10 ns.
     
-    wait for 535 ns;
+    wait for 595 ns;
 	front_S_DIn <= "0000000000010010";
 	wait for 20 ns;
 	front_S_DIn <=(others => 'U');
@@ -134,6 +134,7 @@ begin
 end process;
 
 END flow;
+
 
 
 

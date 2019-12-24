@@ -70,6 +70,8 @@ ARCHITECTURE am29f400b_behavioral of am29f400b_interface IS
 	SIGNAL back_WE1           		:    std_logic := 'U';
 	SIGNAL back_RESET1        		:    std_logic := 'U';
 	SIGNAL back_BYTE1         		:    std_logic := 'U';
+	SIGNAL t_BUF_counter		    :    std_logic_vector(1 downto 0);
+	SIGNAL t_BUF_enable		    	:    std_logic := '0';  -- counting is not allowed  
 	SIGNAL t_RC_counter		    	:    std_logic_vector(3 downto 0);
 	SIGNAL t_RC_enable		    	:    std_logic := '0';  -- counting is not allowed
 	SIGNAL t_RH_counter		    	:    std_logic_vector(2 downto 0);
@@ -92,7 +94,8 @@ TYPE STATE_TYPE IS (
 	reset_s,  		-- reseting state
 	erase_wait, 	-- waiting decision about erasing state
 	erase,    		-- chip erasing state
-	manufacter_id 	--reading manufacter id state
+	manufacter_id, 	--reading manufacter id state
+	BUF			-- temporary state,reset all registers and etc. 
  );
   -----------------------------------------------------------------------------
 SIGNAL current_state : STATE_TYPE ;
@@ -130,38 +133,18 @@ begin  -- process state_flow
 				end if;
 				
 			when read_s =>	
-				if (t_RC_counter = "0000") and (t_RC_enable = '0') and (HostChoice = "000") then --(front_nCE = '1')
-					current_state <= idle;
-				elsif (t_RC_counter = "0000") and (t_RC_enable = '0') and (HostChoice = "100" ) then 
-					current_state <= write_s;
-				--elsif(t_RC_counter /= "0000") and (HostChoice /= "001") then ---(front_nCE /= '0')
-					--current_state <= reset_s;
-				elsif   (t_RC_counter = "0000") and (t_RC_enable = '0') and (HostChoice = "010" ) then 
-					current_state <= manufacter_id;
-				elsif   (t_RC_counter = "0000") and (t_RC_enable = '0') and  (HostChoice = "011")   then
-					current_state <= erase_wait;
+				if (t_RC_counter = "0000") and (t_RC_enable = '0')  then 
+					current_state <= BUF;
 				end if;
 
 			when write_s =>
-				if (t_AH_enable = '0' and t_WC_enable = '0' and write_cycle_number = "11" and HostChoice = "000") then
-					current_state <= idle;
-				elsif (t_AH_enable = '0' and t_WC_enable = '0' and write_cycle_number = "11" and HostChoice = "001") then
-					current_state <= read_s;
-				elsif (t_AH_enable = '0' and t_WC_enable = '0' and write_cycle_number = "11" and HostChoice = "010") then
-					current_state <= manufacter_id;
-				elsif (t_AH_enable = '0' and t_WC_enable = '0' and write_cycle_number = "11" and HostChoice = "011")   then
-					current_state <= erase_wait;
+				if (t_AH_enable = '0' and t_WC_enable = '0' and write_cycle_number = "11" and t_AH_counter="000")  then
+					current_state <= BUF;
 				end if;
 				
 			when manufacter_id =>
-				if (t_RC_counter = "0000")  and (HostChoice = "000") and (write_cycle_number = "11") then --(front_nCE = '1')
-					current_state <= idle;
-				elsif (t_RC_counter = "0000")  and (HostChoice = "100" ) and (write_cycle_number = "11") then 
-					current_state <= write_s;
-				elsif (t_RC_counter = "0000")  and (HostChoice = "001" ) and (write_cycle_number = "11") then 
-					current_state <= read_s;
-				elsif (t_RC_counter = "0000") and (HostChoice = "011" ) and (write_cycle_number = "11") then 
-					current_state <= erase_wait;
+				if (t_RC_counter = "0000")   and (write_cycle_number = "11") then
+					current_state <= BUF;
 				end if;
 			   
 			when reset_s =>
@@ -170,6 +153,7 @@ begin  -- process state_flow
 				end if;
 				
 			when erase_wait =>
+
 				if (t_ERASE_CHECK_enable ='0') and (t_ERASE_CHECK_counter="00") then 
 					if HostChoice = "001" then    --(front_nCE = '0') and (front_nWE = '1') 
 						current_state <= read_s;
@@ -184,18 +168,14 @@ begin  -- process state_flow
 					end if;
 				end if;	
 			when erase =>
-				if (t_AH_counter ="000"  and t_AH_enable ='1' and erase_cycle_number = "101" and HostChoice = "000") then
-					current_state <= idle;
-				elsif (t_AH_counter ="000" and t_AH_enable ='1' and erase_cycle_number = "101" and HostChoice = "001") then
-					current_state <= read_s;
-				elsif (t_AH_counter ="000" and t_AH_enable ='1' and erase_cycle_number = "101" and HostChoice = "010") then
-					current_state <= manufacter_id;
-				elsif (t_AH_counter ="000" and t_AH_enable ='1' and erase_cycle_number = "101" and HostChoice = "011")   then
-					current_state <= erase_wait;
-				elsif (t_AH_counter ="000" and t_AH_enable ='1' and erase_cycle_number = "101" and HostChoice = "100")   then
-					current_state <= write_s;
+				if (t_AH_counter ="000"  and t_AH_enable ='1' and erase_cycle_number = "101") then
+					current_state <= BUF;
 				end if;
-			
+				
+			when BUF =>
+				if(t_BUF_counter="00" ) and ( t_BUF_enable ='0') then 
+					current_state <= idle;
+				end if;
 		end case;
 	end if;
 end process state_flow;
@@ -204,11 +184,83 @@ end process state_flow;
 	
 main_flow: process (Clk, nRst)
 begin
-	if (Clk'event and Clk = '1') then
+	if (nRst = '0') then 
+		front_nReady1<='0';
+		
+		front_recieve1<='0';
+		front_give_data1<='0';
+		back_A1 <=(others => 'U');
+		back_DQ1 <=(others => 'U');
+		back_CE1<='1';
+		back_OE1<='0';
+		back_WE1<='1';
+		t_RC_counter<="1001";
+		t_RC_enable<='0';
+		t_WC_counter<="1001";
+		t_WC_enable<='0';
+		t_AH_counter<="101";
+		t_AH_enable<='0';
+		t_ERASE_CHECK_counter<="11";
+		t_ERASE_CHECK_enable<='0';
+		t_BUF_counter<="11";
+		t_BUF_enable<='0';
+		write_cycle_number<="00";
+		erase_cycle_number<="000";
+		front_S_DOut1<=(others => 'U');
+		t_RH_counter <= "101";  --5 = 50ns and enable <=0
+		
+		back_RESET1 <= '0';
+		t_RH_enable <= '1';	
+		
+	
+	elsif (Clk'event and Clk = '1') then
 -- 		Если host ничего не делает (idle), то host обязан либо послать на frontend HostChoice = "000", либо ничего не посылать (по умолчанию тоже "000") 
 --		Если host хочет обычную операцию чтения (Read), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "001"
 -- 		Если host хочет операцию чтения Manufacturer ID (read + Manufacturer_ID), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "010"
 --	    Если host хочет операцию записи (write), то помимо верной конфигурации прочих сигналов он обязан послать HostChoice = "100"		
+		back_RESET1 <= '1';
+		
+		if(current_state = BUF) then 
+			front_nReady1<='0';
+			front_recieve1<='0';
+			front_give_data1<='0';
+			back_A1 <=(others => 'U');
+			back_DQ1 <=(others => 'U');
+			back_CE1<='1';
+			back_OE1<='0';
+			back_WE1<='1';
+			t_RC_counter<="1001";
+			t_RC_enable<='0';
+			t_WC_counter<="1001";
+			t_WC_enable<='0';
+			t_AH_counter<="101";
+			t_AH_enable<='0';
+			t_ERASE_CHECK_counter<="11";
+			t_ERASE_CHECK_enable<='0';
+			write_cycle_number<="00";
+			erase_cycle_number<="000";
+			front_S_DOut1<=(others => 'U');
+			t_RH_counter <= "101";  --5 = 50ns and enable <=0
+		end if;
+		
+		--t_BUF_enable--
+		if (current_state = BUF and t_BUF_counter = "11") then 
+			t_BUF_enable <= '1';
+		elsif (current_state = BUF and t_BUF_counter = "00") then 
+			t_BUF_enable <= '0';
+		end if;
+		
+		-- t_BUF_counter --
+		if (current_state = BUF) then
+			if (t_BUF_enable = '0') then
+				t_BUF_counter <= "11";  --9 = 40ns	
+			elsif(t_BUF_enable = '1') then
+				if (t_BUF_counter /= "00") then
+					t_BUF_counter <= t_BUF_counter - '1';
+				end if;
+			end if;
+		end if;
+		
 		
 		--front_give_data1--
 		if (current_state = write_s) and (t_WC_counter="0000")  and (write_cycle_number="10") then
@@ -245,24 +297,26 @@ begin
 			if(  t_RC_counter= "1001") then
 				back_BYTE1 <= front_Byte;
 			end if;
+		elsif(current_state=reset_s) then
+			back_BYTE1<=front_Byte;
 		end if;
 
 		--back_RESET1 => back_RESET1 --
-		if (current_state = read_s) then
-			if(t_RC_enable = '1') then
-				if (t_RC_counter /= "0000") then
-					back_RESET1 <= '1';
-				end if; 
-			end if;
-		elsif (current_state = reset_s) then
-			if (t_RH_enable = '0') then
-				back_RESET1 <= '1';
-			elsif(t_RH_enable = '1') then
-				if (t_RH_counter /= "000") then
-					back_RESET1 <= '0';
-				end if; 
-			end if;
-		end if;
+		-- if (current_state = read_s) then
+			-- if(t_RC_enable = '1') then
+				-- if (t_RC_counter /= "0000") then
+					-- back_RESET1 <= '1';
+				-- end if; 
+			-- end if;
+		-- elsif (current_state = reset_s) then
+			-- if (t_RH_enable = '0') then
+				-- back_RESET1 <= '1';
+			-- elsif(t_RH_enable = '1') then
+				-- if (t_RH_counter /= "000") then
+					-- back_RESET1 <= '0';
+				-- end if; 
+			-- end if;
+		-- end if;
 
 		--front_nReady1=>front_nReady --
 		if (current_state = read_s) then
@@ -410,8 +464,7 @@ begin
 					back_A1 <= "000000010101010101";					
 				elsif(erase_cycle_number = "101" and t_AH_enable = '0' and t_AH_counter ="101") then
 					back_A1 <= "000000101010101010";
-				elsif(erase_cycle_number = "101"  and t_AH_counter ="000") then
-					back_A1 <= (others => 'U');	
+				
 				end if;
 			
 			end if;
@@ -434,8 +487,6 @@ begin
 				back_DQ1 <= "0000000010100000";
 			elsif(write_cycle_number = "11" and t_AH_enable = '0' and t_AH_counter ="101") then
 				back_DQ1 <= front_S_DIn ;
-			elsif(write_cycle_number = "11" and t_AH_enable = '0' and t_AH_counter ="000") then
-				back_DQ1 <= (others => 'Z');	
 			end if;
 		elsif(current_state = manufacter_id) then
 			if( write_cycle_number = "00") then
@@ -460,8 +511,6 @@ begin
 				back_DQ1 <= "0000000001010101";
 			elsif(erase_cycle_number = "101" and t_AH_enable = '0' and t_AH_counter ="101") then
 				back_DQ1 <= "0000000000010000" ;
-			elsif(erase_cycle_number = "101"  and t_AH_counter ="000") then
-				back_DQ1 <= (others => 'Z');	
 			end if;
 		end if;
 
@@ -469,16 +518,6 @@ begin
 		if (current_state = read_s) then
 			if(t_RC_enable = '1') then
 				if (t_RC_counter /= "0000") then				
-					back_OE1 <= '0';
-				end if;
-			end if;
-		elsif (current_state = reset_s) then
-			back_OE1 <= '0';
-		elsif (current_state = reset_s) then
-			if(t_RH_enable = '1') then
-				if (t_RH_counter /= "000") then
-					back_OE1 <= '1';
-				elsif (t_RH_counter = "000") then			
 					back_OE1 <= '0';
 				end if;
 			end if;
@@ -498,10 +537,7 @@ begin
 		if (current_state = read_s) then
 			if (t_RC_counter /= "0000") then
 				back_WE1 <= '1';
-			end if;
-		elsif (current_state = reset_s) then
-			back_WE1 <= '1';
-				
+			end if;				
 		elsif (current_state = write_s) then
 			if(t_AH_enable /= '0') then		
 				back_WE1 <= '0';		
@@ -533,8 +569,6 @@ begin
 			if (t_RC_counter /= "0000") then
 				back_CE1 <= '0';
 			end if;
-		elsif (current_state = reset_s) then
-			back_CE1 <= '1';
 		elsif (current_state = idle) then		
 			back_CE1 <= '1';	
 		elsif (current_state = write_s) then
@@ -610,23 +644,17 @@ begin
 					t_RC_counter <= t_RC_counter - '1';
 				end if;
 			end if;
-		elsif (current_state = reset_s) then
-			t_RC_counter <= "1001";  --9 = 90ns	
 		end if;
 		
 		-- t_RH_enable --
-		if (current_state = reset_s and t_RH_counter /= "000") then 
-			t_RH_enable <= '1';
-		elsif (current_state = reset_s and t_RH_counter = "000") then
+			
+		if (current_state = reset_s and t_RH_counter = "000") then
 			t_RH_enable <= '0';
 		end if;
 		
 		-- t_RC_enable --
 		if (current_state = read_s and t_RC_counter = "1001") then 
 			t_RC_enable <= '1';
-		elsif (current_state = reset_s) then
-			t_RC_enable <= '0';  --not enable counting for counter in read_s state		
-		--else
 		elsif (current_state = read_s and t_RC_counter = "0000") then 
 			t_RC_enable <= '0';
 		elsif (current_state = manufacter_id and t_RC_counter = "1001" and write_cycle_number ="11") then 
@@ -655,9 +683,8 @@ begin
 		end if;
 		
 		-- t_RH_counter --
-		if (current_state = reset_s and t_RH_enable = '0') then 
-			t_RH_counter <= "101";  --5 = 50ns
-		elsif(current_state = reset_s and t_RH_enable = '1') then 
+			
+		if(current_state = reset_s and t_RH_enable = '1') then 
 			if (t_RH_counter /= "000")then
 				t_RH_counter <= t_RH_counter - '1';
 			end if;
@@ -690,9 +717,7 @@ begin
 		elsif (current_state = write_s and t_WC_counter /= "0000" and write_cycle_number = "10") then 
 			t_WC_enable <= '1';
 		elsif (current_state = write_s and t_WC_counter = "0000") then 
-			t_WC_enable <= '0';
-		elsif (current_state = reset_s) then
-			t_WC_enable <= '0';  --not enable counting for counter in read_s state		
+			t_WC_enable <= '0';	
 		elsif (current_state = manufacter_id and t_WC_counter /= "0000" and write_cycle_number = "00") then 
 			t_WC_enable <= '1';
 		elsif (current_state = manufacter_id and t_WC_counter /= "0000" and write_cycle_number = "10") then 
@@ -720,8 +745,6 @@ begin
 			t_AH_enable <= '0';
 		elsif (current_state = write_s and t_AH_counter = "000" and write_cycle_number = "11") then
 			t_AH_enable <= '0';
-		elsif (current_state = reset_s) then
-			t_AH_enable <= '0'; 
 		elsif (current_state = manufacter_id and t_AH_counter /= "000" and write_cycle_number = "01") then 
 			t_AH_enable <= '1';
 		elsif (current_state = manufacter_id and t_AH_counter = "000" and write_cycle_number = "01") then
@@ -812,6 +835,12 @@ begin
 end process main_flow;
 
 END am29f400b_behavioral;
+
+
+
+
+
+
 
 
 
